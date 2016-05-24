@@ -18,7 +18,7 @@
 
 #include "pack.h"
 
-#define MAX_WIDTH   3840
+#define MAX_WIDTH   4096
 #define MAX_HEIGHT  2160
 
 static uint8_t img       [MAX_WIDTH * MAX_HEIGHT * 3];
