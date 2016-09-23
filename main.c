@@ -18,10 +18,18 @@
 
 #include "pack.h"
 
-#define MAX_WIDTH   4096
-#define MAX_HEIGHT  2160
+#define MAX_WIDTH   7680
+#define MAX_HEIGHT  4320
+
+
+typedef struct
+{
+    char name[256];
+} string_t;
 
 static uint8_t img       [MAX_WIDTH * MAX_HEIGHT * 3];
+
+static string_t null;
 
 int main(int argc, char *argv[])
 {
@@ -29,7 +37,7 @@ int main(int argc, char *argv[])
     uint32_t *u;
     uint32_t *v;
     quatre_pixel q_pix;
-    int fd_rd, fd_wr;
+    int ifd, ofd;
 
     int width;
     int height;
@@ -40,7 +48,7 @@ int main(int argc, char *argv[])
     ssize_t rd_sz;
     
     char *cp;
-    char output_file_name[256];
+    string_t output;
     
     if (argc < 4)
     {
@@ -49,31 +57,31 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    cp = NULL;
-    memset(output_file_name, 0, sizeof(output_file_name));
+    cp 		= NULL;
+    output 	= null;
 
     // get input file name from comand line
-    fd_rd = open(argv[1], O_RDONLY);
-    if (fd_rd < 0)
+    ifd = open(argv[1], O_RDONLY);
+    if (ifd < 0)
     {
         perror(argv[1]);
         exit(EXIT_FAILURE);
     }
 
     // specify output file name
-    cp = strchr(argv[1], '.');
-    strncpy(output_file_name, argv[1], cp - argv[1]);
-    strcat(output_file_name, "_p010");
-    strcat(output_file_name, cp);
+    cp = rindex(argv[1], '.');
+    strncpy(output.name, argv[1], cp - argv[1]);
+    strcat(output.name, "_p010");
+    strcat(output.name, cp);
     
-    fd_wr = open(output_file_name, O_RDWR | O_CREAT, S_IRUSR);
+    ofd = open(output.name, O_RDWR | O_CREAT, S_IRUSR);
 
     width   = atoi(argv[2]);
     height  = atoi(argv[3]);
     wxh     = width * height;
 
  
-    while ((rd_sz = read(fd_rd, img, wxh * 3)) == wxh * 3)
+    while ((rd_sz = read(ifd, img, wxh * 3)) == wxh * 3)
     {
         y = (uint64_t *) img;
         u = (uint32_t *) ((uint8_t *) img + width * height * 2);
@@ -96,7 +104,7 @@ int main(int argc, char *argv[])
                 p++;
             }
         }
-        write(fd_wr, py, width * height / 4 * sizeof(quatre_pixel));
+        write(ofd, py, width * height / 4 * sizeof(quatre_pixel));
         free(py);
         
         // U, V
@@ -122,18 +130,18 @@ int main(int argc, char *argv[])
                 q++;
             }
         }
-        write(fd_wr, quv, width * height / 2 / 4 * sizeof(quatre_pixel));
+        write(ofd, quv, width * height / 2 / 4 * sizeof(quatre_pixel));
         free(quv);
         
         fprintf(stderr, "Frame %d completed.\n", count);
         count++;
     }
     
-    close(fd_rd);
-    close(fd_wr);
+    close(ifd);
+    close(ofd);
     
     fprintf(stderr, "Done\n");
-    fprintf(stderr, "Output file: %s\n", output_file_name);
+    fprintf(stderr, "Output file: %s\n", output.name);
     
     return 0;
 }
